@@ -7,8 +7,8 @@ import json
 import yaml
 from subprocess import check_output
 from subprocess import call
-import subprocess
-import os
+from os import setpgrp
+from os import seteuid
 #------------- Variables
 
 vars_config_file = {}
@@ -37,16 +37,19 @@ class Start_jenkins_slave:
     def slave_startup(self, conf_vars):
         for slave_down in self.list_for_startup:
             if str(slave_down) == conf_vars['SLAVE_NAME']:
-                USER_NAME = conf_vars['USER']
-            UID = subprocess.check_output(['id', '-u', USER_NAME])
-            CI_GUID = conf_vars['CI_GROUP_ID']
-            USER_ID = int(UID)
-            os.setgid(CI_GUID)
-            os.seteuid(USER_ID)
-            SLAVE_URL = str(conf_vars['URL'])
-            WORK_DIR = conf_vars['CWD']
-            print(SLAVE_URL)
-            subprocess.call(['java', '-jar', 'slave.jar', '-jnlpUrl', SLAVE_URL], cwd=WORK_DIR, preexec_fn=os.setpgrp)
+                USER_NAME = conf_vars['SLAVE_USER']
+                UID = check_output(['id', '-u', USER_NAME])
+                USER_ID = int(UID)
+#                os.setgid(CI_GUID)
+#                os.seteuid(USER_ID)
+                SLAVE_URL = str(conf_vars['SLAVE_URL'])
+                WORK_DIR = conf_vars['SCRIPT_DIRECTORY']
+#                DEVNULL = open(os.devnull, 'wb')
+                call(['java', '-jar', 'slave.jar', '-jnlpUrl', SLAVE_URL],\
+                    cwd=WORK_DIR, preexec_fn=setpgrp)
+            else:
+                return(False)
+
 #------------- Functions
 def parsing_conf_file(conf_file):
     with open(conf_file, 'r') as cfg_file:
@@ -82,9 +85,10 @@ def main():
     jenkins_api_json = get_jenkins_api_json(vars_config_file['CI_API_URL'])
     j_treated = treated_jenkins_api_json(jenkins_api_json)
     nodes_list_json = Handler_json(j_treated)
-    list_slaves_down = verify_nodes_slave(nodes_list_json.computer, vars_config_file['SLAVES_REQUIRED'])
-    teste_start = Start_jenkins_slave(list_slaves_down)
-    teste_start.slave_startup(vars_config_file)
+    list_slaves_down = verify_nodes_slave(nodes_list_json.computer, \
+        vars_config_file['SLAVE_NAME'])
+    slaves_for_startup = Start_jenkins_slave(list_slaves_down)
+    slaves_for_startup.slave_startup(vars_config_file)
 
 if __name__ == "__main__":
     exit(main())

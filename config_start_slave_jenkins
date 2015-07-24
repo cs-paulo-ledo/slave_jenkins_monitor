@@ -1,11 +1,12 @@
 ---
 
 CI_API_URL:
-CWD:
+SCRIPT_DIRECTORY:
 PROJECT_NAME:
-USER:
-CI_GROUP_ID:
+SLAVE_USER:
 SLAVE_NAME:
-URL:
+SLAVE_URL:
 SLAVES_REQUIRED:
-    -
+    - slave_name:
+      slave_url:
+      slave_user:
